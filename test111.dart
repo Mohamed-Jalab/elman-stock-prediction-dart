@@ -47,7 +47,7 @@ void main() {
     inputs.add(double.parse(sample.first.toString()));
   print(inputs);
   double output = double.parse(trainingSetOutput.first.toString());
-  NeuralNetwork network = NeuralNetwork(
+  RecurrentNeuralNetwork network = RecurrentNeuralNetwork(
       inputValues: inputs,
       outputValue: output,
       neuronsOfEachLayer: [11, 1],
@@ -58,7 +58,7 @@ void main() {
 
 void trainNetwork(
     {int epoch = 10,
-    required NeuralNetwork network,
+    required RecurrentNeuralNetwork network,
     double changingLearningRate = .9}) {
   int trainAccuracy = 0;
   double trainMeanSquareError = 0;

@@ -47,7 +47,7 @@ void main() {
     inputs.add(double.parse(sample.first.toString()));
   print(inputs);
   double output = double.parse(trainingSetOutput.first.toString());
-  NeuralNetwork network = NeuralNetwork(
+  RecurrentNeuralNetwork network = RecurrentNeuralNetwork(
       learningRate: .6,
       inputValues: inputs,
       outputValue: output,
@@ -59,7 +59,7 @@ void main() {
 
 void trainNetwork(
     {int epoch = 10,
-    required NeuralNetwork network,
+    required RecurrentNeuralNetwork network,
     double changingLearningRate = .9}) {
   int trainAccuracy = 0;
   double trainMeanSquareError = 0;
@@ -135,7 +135,7 @@ void trainNetwork(
   }
 }
 
-void mytest(NeuralNetwork network) {
+void mytest(RecurrentNeuralNetwork network) {
   //! training
   // number of epoch
   for (int i = 0; i < 10000; i++) {
@@ -185,7 +185,7 @@ void mytest(NeuralNetwork network) {
   }
 }
 
-void saveWeights(NeuralNetwork network) {
+void saveWeights(RecurrentNeuralNetwork network) {
   File file = File(
       "weights_${network.layers.first.neurons.length}_${network.layers.last.neurons.length}.mohammed");
   IOSink sink = file.openWrite();

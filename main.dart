@@ -10,14 +10,16 @@ List<Object> trainingSetOutput = [], testSetOutput = [];
 void main() {
   int accuracy = 0;
 
-  List<String> csvFile = File("heart.csv").readAsStringSync().split("\n");
+  List<String> csvFile =
+      File("Google_Stock_Price_Train.csv").readAsStringSync().split("\n");
   print(csvFile.length);
   print("remove : ${csvFile.removeAt(0)}"); //? remove the headers
-  csvFile.shuffle();
+  print(
+      "remove : ${csvFile.removeAt(csvFile.length - 1)}"); //? remove the headers
+  // csvFile.shuffle();
   print(csvFile.length);
   List<List<Object>> csvProcessed =
       DatasetManager.createDataset(csvFile, logProcess: true);
-      
 
   //? create dataset
   //? ---------------------
@@ -26,48 +28,70 @@ void main() {
   trainingSetFeatures = [];
   testSetFeatures = [];
   for (final List<Object> row in csvProcessed) {
-    print(row.sublist(0, 20));
-    trainingSetFeatures.add(row.sublist(0, 730));
-    testSetFeatures.add(row.sublist(730));
+    // print(row.sublist(0, 20));
+    trainingSetFeatures.add(row.sublist(0, 1000));
+    testSetFeatures.add(row.sublist(1000));
   }
-  trainingSetOutput = trainingSetFeatures.removeAt(11);
-  testSetOutput = testSetFeatures.removeAt(11);
+
+  trainingSetOutput = trainingSetFeatures.last.toList();
+  trainingSetOutput.removeAt(0);
+  for (final feature in trainingSetFeatures)
+    feature.removeAt(feature.length - 1);
+  testSetOutput = testSetFeatures.last.toList();
+  testSetOutput.removeAt(0);
+  for (final feature in testSetFeatures) feature.removeAt(feature.length - 1);
+
+  print("training samples:");
+  for (final List<Object> row in trainingSetFeatures) print(row.sublist(0, 5));
+  print("testing samples:");
+  print(trainingSetOutput.sublist(0, 5));
 
   print(csvFile.length);
   print(trainingSetFeatures.first.length + testSetFeatures.first.length);
+  print("${trainingSetFeatures.first.length} == ${trainingSetOutput.length}");
   print(trainingSetOutput.length);
-
+  print("\x1B[2J\x1B[0;0H");
   List<double> inputs = [];
+
   for (final List<Object> sample in trainingSetFeatures)
     inputs.add(double.parse(sample.first.toString()));
   print(inputs);
   double output = double.parse(trainingSetOutput.first.toString());
-  NeuralNetwork network = NeuralNetwork(
-      learningRate: .1,
+  print(output);
+  RecurrentNeuralNetwork network = RecurrentNeuralNetwork(
+      learningRate: .01,
       inputValues: inputs,
       outputValue: output,
-      neuronsOfEachLayer: [22, 1],
+      neuronsOfEachLayer: [20, 1],
       activations: ["sigmoid", "sigmoid"]);
+
+  print(network.inputs.length);
+  print(network.layers.first.neurons.length);
+  print(network.layers.last.neurons.length);
+  // print("\x1B[2J\x1B[0;0H");
+  // print("first");
+  // for (final Neuron neuron in network.layers.first.neurons)
+  //   print(neuron.output);
+  // print("second");
+  // for (final Neuron neuron in network.layers.first.neurons)
+  //   print(neuron.output);
+
   trainNetwork(network: network, epoch: 30000);
   // mytest(network);
 }
 
 void trainNetwork(
     {int epoch = 10,
-    required NeuralNetwork network,
+    required RecurrentNeuralNetwork network,
     double changingLearningRate = .9}) {
-  int trainAccuracy = 0;
-  double trainMeanSquareError = 0;
-  int testAccuracy = 0;
-  double testMeanSquareError = 0;
+  double trainLoss = 0;
+  double testLoss = 0;
 
   //! training
   // number of epoch
   for (int i = 0; i < epoch; i++) {
-    trainAccuracy = 0;
-    testAccuracy = 0;
-    trainMeanSquareError = 0;
-    testMeanSquareError = 0;
+    trainLoss = 0;
+    testLoss = 0;
     // number of samples
     for (int j = 0; j < trainingSetFeatures.first.length; j++) {
       // number of features
@@ -81,12 +105,21 @@ void trainNetwork(
 
       double actualOutput = network.feedForward as double;
 
-      if (actualOutput.round().toDouble() == network.desiredOutput)
-        trainAccuracy++;
-      trainMeanSquareError +=
-          pow((network.desiredOutput - actualOutput), 2).toDouble();
+      /// save outputs into context [Layer]
+      List<double> temp = [];
+      for (var neuron in network.layers.first.neurons) temp.add(neuron.output);
 
-      // if(double.parse(network.feedForward.toString()).round() > )
+      for (int i = 0; i < network.layers.first.neurons.length; i++)
+        network.contextNeurons[i].value = temp[i];
+
+      /// calculate Loss training
+      // trainLoss +=
+      //     pow(((network.desiredOutput * 1216.83) - (actualOutput * 1216.83)), 2)
+      //         .toDouble();
+      trainLoss +=
+          pow(((network.desiredOutput ) - (actualOutput)), 2)
+              .toDouble();
+
       network.backPropagation;
       // print(network.backPropagation);
     }
@@ -94,6 +127,7 @@ void trainNetwork(
       print("==change learning rate==");
       network.learningRate *= changingLearningRate;
     }
+
     //! testing
     for (int j = 0; j < testSetFeatures.first.length; j++) {
       // number of features
@@ -102,22 +136,35 @@ void trainNetwork(
             InputNeuron(value: double.parse(testSetFeatures[k][j].toString()));
       network.desiredOutput = double.parse(testSetOutput[j].toString());
 
-      // print("${network.feedForward} should be ==> ${network.desiredOutput}");
+      // print(
+      //     "${(network.feedForward as double) * 1216.83} should be ==> ${network.desiredOutput * 1216.83}");
 
       double actualOutput = network.feedForward as double;
 
-      if (actualOutput.round().toDouble() == network.desiredOutput)
-        testAccuracy++;
-      testMeanSquareError +=
-          pow((network.desiredOutput - actualOutput), 2).toDouble();
+      testLoss +=
+          pow(((network.desiredOutput) - (actualOutput)), 2)
+              .toDouble();
     }
 
     print(
-        "Epoch $i Training => accuracy: ${trainAccuracy / trainingSetFeatures.first.length}  loss: ${trainMeanSquareError / trainingSetFeatures.first.length}   |   Test => accuracy: ${testAccuracy / testSetFeatures.first.length}  loss: ${testMeanSquareError / testSetFeatures.first.length}");
+        "Epoch $i Training => loss: ${trainLoss / trainingSetFeatures.first.length}   |   Test => loss: ${testLoss / testSetFeatures.first.length}");
+  }
+  print("Test predication: ");
+  for (int j = 0; j < testSetFeatures.first.length; j++) {
+    // number of features
+    for (int k = 0; k < testSetFeatures.length; k++)
+      network.inputs[k] =
+          InputNeuron(value: double.parse(testSetFeatures[k][j].toString()));
+    network.desiredOutput = double.parse(testSetOutput[j].toString());
+
+    print(
+        "${(network.feedForward as double) * 1216.83} should be ==> ${network.desiredOutput * 1216.83}");
+
+    double actualOutput = network.feedForward as double;
   }
 }
 
-void mytest(NeuralNetwork network) {
+void mytest(RecurrentNeuralNetwork network) {
   //! training
   // number of epoch
   for (int i = 0; i < 10000; i++) {
@@ -166,76 +213,3 @@ void mytest(NeuralNetwork network) {
     print("Epoch $i");
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// List<double> inputs = [1, 1];
-  // double output = 0;
-  // NeuralNetwork network = NeuralNetwork(
-  //     inputValues: inputs,
-  //     outputValue: output,
-  //     neuronsOfEachLayer: [2, 1],
-  //     activations: ["sigmoid", "sigmoid"]);
-  // network.layers[0].neurons[0].weights[0] = 0.5;
-  // network.layers[0].neurons[0].weights[1] = 0.4;
-  // network.layers[0].neurons[0].weights[2] = 0.8;
-  // network.layers[0].neurons[0].bias = -1.0;
-
-  // network.layers[0].neurons[1].weights[0] = 0.9;
-  // network.layers[0].neurons[1].weights[1] = 1.0;
-  // network.layers[0].neurons[1].weights[2] = -0.1;
-  // network.layers[0].neurons[1].bias = -1.0;
-
-  // network.layers[1].neurons[0].weights[0] = -1.2;
-  // network.layers[1].neurons[0].weights[1] = 1.1;
-  // network.layers[1].neurons[0].weights[2] = 0.3;
-  // network.layers[1].neurons[0].bias = -1.0;
-
-  // print(network.feedForward);
-  // network.backPropagation;
-
-  // for (var i = 0; i < 100000; i++) {
-  //   network.inputs[0] = InputNeuron(value: 1);
-  //   network.inputs[1] = InputNeuron(value: 0);
-  //   network.desiredOutput = 1;
-
-  //   print(network.feedForward);
-  //   network.backPropagation;
-
-  //   network.inputs[0] = InputNeuron(value: 0);
-  //   network.inputs[1] = InputNeuron(value: 1);
-  //   network.desiredOutput = 1;
-
-  //   print(network.feedForward);
-  //   network.backPropagation;
-
-  //   network.inputs[0] = InputNeuron(value: 1);
-  //   network.inputs[1] = InputNeuron(value: 1);
-  //   network.desiredOutput = 0;
-
-  //   print(network.feedForward);
-  //   network.backPropagation;
-
-  //   network.inputs[0] = InputNeuron(value: 0);
-  //   network.inputs[1] = InputNeuron(value: 0);
-  //   network.desiredOutput = 0;
-
-  //   print(network.feedForward);
-  //   network.backPropagation;
-  // }

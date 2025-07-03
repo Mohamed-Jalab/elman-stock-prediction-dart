@@ -11,7 +11,9 @@ abstract class DatasetManager {
         return nums;
       } catch (_) {
         List<double> nums = [];
-        for (final String str in strs) nums.add(double.parse(str));
+        for (final String str in strs) {
+          nums.add(double.parse(str));
+        }
         return nums;
       }
     }
@@ -27,21 +29,25 @@ abstract class DatasetManager {
     return encodedList;
   }
 
-  static List<double> normalize(List<int> integers) {
-    int maxValue = integers.reduce((value, element) => max(value, element));
+  static List<double> normalize(List<double> integers) {
+    double maxValue = integers.reduce((value, element) => max(value, element));
     print(maxValue);
     List<double> normalizedList = [];
-    for (final int integer in integers) normalizedList.add(integer / maxValue);
+    for (final double integer in integers)
+      normalizedList.add(integer / maxValue);
     return normalizedList;
   }
 
   static List<List<Object>> createDataset(List<String> csvFile,
       {bool logProcess = true}) {
+    print(csvFile[0]);
+    // print(csvFile[0].split(","));
     List<List<Object>> csvProcessed = [];
     for (int i = 0; i < csvFile[0].split(',').length; i++)
       csvProcessed.add(<String>[]);
     for (final String row in csvFile) {
       List<String> temp = row.split(',');
+
       for (int i = 0; i < csvFile[0].split(',').length; i++)
         csvProcessed[i].add(temp[i]);
     }
@@ -71,8 +77,8 @@ abstract class DatasetManager {
 
     // Normalizing CSV file
     for (int i = 0; i < csvProcessed.length; i++)
-      if (csvProcessed[i] is List<int>)
-        csvProcessed[i] = normalize(csvProcessed[i] as List<int>);
+      if (csvProcessed[i] is List<double>)
+        csvProcessed[i] = normalize(csvProcessed[i] as List<double>);
 
     // print 10 element of each row in csvProcessed for ensuring
     if (logProcess) {

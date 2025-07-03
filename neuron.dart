@@ -6,8 +6,8 @@ abstract class Node {
 }
 
 class InputNeuron extends Node {
-  final double value;
-  const InputNeuron({required this.value});
+  double value;
+  InputNeuron({required this.value});
 
   @override
   double get output => value;
@@ -56,6 +56,9 @@ class Neuron extends Node {
       case "relu":
         result = ReLU(result);
         break;
+      case "purelin":
+        result = purelin(result);
+        break;
       default:
         throw "'${activation}' not supported yet!";
     }
@@ -69,7 +72,7 @@ class Layer {
   /// here is [Node] because maybe this [Layer]
   /// is the first hidden [Layer] which it's need [InputNeuron]
   /// or not which it's need a [Neuron]
-  final List<Node> inputs;
+  List<Node> inputs;
   final String activation;
   Layer(
       {required int numOfNeurons,
@@ -81,13 +84,14 @@ class Layer {
   }
 }
 
-class NeuralNetwork {
+class RecurrentNeuralNetwork {
   double learningRate;
   List<InputNeuron> inputs = [];
   late double desiredOutput;
   final List<Layer> layers = [];
+  List<InputNeuron> contextNeurons = [];
   final List<String> activations;
-  NeuralNetwork(
+  RecurrentNeuralNetwork(
       {this.learningRate = .1,
       required this.activations,
       required List<double> inputValues,
@@ -101,6 +105,14 @@ class NeuralNetwork {
     /// initial properties
     for (final value in inputValues) inputs.add(InputNeuron(value: value));
     desiredOutput = outputValue;
+
+    /// this [Layer] for context [Layer] to save hidden [Neuron]s results
+    for (int i = 0; i < neuronsOfEachLayer.first; i++)
+      contextNeurons
+          .add(InputNeuron(value: 2 * 2.4 * Random().nextDouble() - 2.4));
+
+    /// to combine input [Layer] and context [Layer]
+    inputs.addAll(contextNeurons);
 
     /// create [Layer]s
     for (int i = 0; i < neuronsOfEachLayer.length; i++) {
@@ -117,9 +129,6 @@ class NeuralNetwork {
             activation: activations[i]));
     }
   }
-
-
-
 
   /// this get method either
   /// returns on its output if the last [Layer] has just one [Neuron]
@@ -161,11 +170,11 @@ class NeuralNetwork {
 
     List<double> deltaWOut = [];
 
-    ///  x1 * ---- O \
-    ///        \/     \
-    ///  x2 * ---- O -- O
-    ///        \/     /
-    ///  x3 * ---- O /
+    ///  x1 * ----O \
+    ///       \ /    \
+    ///  x2 * ----O --O
+    ///       / \    /
+    ///  x3 * ----O /
     ///                ^^^
     /// calculate deltaW for output neuron
     for (int i = 0; i < layers.last.neurons.first.weights.length; i++)
@@ -175,9 +184,7 @@ class NeuralNetwork {
       else
         deltaWOut
             .add(learningRate * layers.last.neurons.first.bias * gradientOut);
-    
-    
-    
+
     List<List<double>> deltaWHidden = [];
 
     ///calculate deltaW for hidden neurons
@@ -225,3 +232,7 @@ double tanh(double input) {
   double ex = exp(2 * input);
   return (ex - 1) / (ex + 1);
 }
+
+double tansig(double input) => 2 / (1 + exp(-2 * input)) - 1;
+
+double purelin(double input) => input;
