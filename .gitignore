@@ -1,1 +1,9 @@
+.dart_tool/
+.packages
+build/
+coverage/
+pubspec.lock
+*.log
+.DS_Store
 desktop.ini
+*.weights.json

@@ -1,0 +1,11 @@
+name: google_stock_elman
+description: A small, educational Elman recurrent neural network for stock-price forecasting.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.3.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
